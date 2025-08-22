@@ -8,6 +8,8 @@ import sqlite3
 import bcrypt # Needed for a shared module
 from datetime import datetime
 
+
+
 # Optional parsers
 try:
     from docx import Document as DocxDocument

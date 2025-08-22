@@ -7,9 +7,10 @@
 
 import streamlit as st
 
+
 st.set_page_config(
     page_title="ClauseEase - Welcome",
-    layout="wide"
+    layout="centered"
 )
 
 st.title("Welcome to ClauseEase")

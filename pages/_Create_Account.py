@@ -4,10 +4,18 @@
 # -------------------------------------------------------------
 
 import streamlit as st
+
+
+
+
+
 import sqlite3
 import bcrypt
 from datetime import datetime
 
+st.set_page_config(
+    layout="centered"  # 👈 This disables wide mode, keeps it normal
+)
 # ---------------------------
 # Database helpers
 # ---------------------------
