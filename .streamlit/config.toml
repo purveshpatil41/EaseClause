@@ -1,6 +1,6 @@
 [theme]
 # The dark "Stone" color for buttons and interactive elements
-primaryColor = "#a6d522ff"
+primaryColor = "#a6d522"
 
 # The soft "Off White" color for the main background
 backgroundColor = "#efeeea"
