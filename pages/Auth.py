@@ -49,6 +49,7 @@ def verify_user(email: str, password: str):
     conn = get_conn()
     row = conn.execute(
         "SELECT id, first_name, last_name, email, password_hash FROM users WHERE email=?",
+        #"SELECT id,  email, password_hash FROM users WHERE email=?",
         (email.strip().lower(),),
     ).fetchone()
     conn.close()
@@ -57,6 +58,7 @@ def verify_user(email: str, password: str):
     try:
         if bcrypt.checkpw(password.encode("utf-8"), row["password_hash"]):
             return {"id": row["id"],"first_name": row["first_name"], "last_name": row["last_name"], "email": row["email"]}
+            #return {"id": row["id"], "email": row["email"]}
     except Exception:
         pass
     return None
