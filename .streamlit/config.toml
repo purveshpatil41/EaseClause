@@ -1,0 +1,15 @@
+[theme]
+# The dark "Stone" color for buttons and interactive elements
+primaryColor = "#fc561c"
+
+# The soft "Off White" color for the main background
+backgroundColor = "#efeeea"
+
+# The "Light Grey" color for the sidebar and input components
+secondaryBackgroundColor = "#224433"
+
+# The dark "Stone" color for text readability
+textColor = "#3d3e39"
+
+# Using a clean sans-serif font
+font = "sans serif"

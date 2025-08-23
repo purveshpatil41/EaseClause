@@ -126,7 +126,12 @@ def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
 def inject_css():
     st.markdown(
         """
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
         <style>
+        
         .badge {
             background: linear-gradient(135deg, #6366F1, #8B5CF6);
             color: white;
