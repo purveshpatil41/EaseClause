@@ -49,6 +49,7 @@ def init_db():
 
 
 def add_user(first_name: str, last_name: str, email: str, password: str) -> tuple[bool, str]:
+#def add_user( email: str, password: str) -> tuple[bool, str]:
     if not email or not password or not first_name or not last_name:
         return False, "All fields are required."
     pw_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
@@ -57,7 +58,9 @@ def add_user(first_name: str, last_name: str, email: str, password: str) -> tupl
         # The INSERT query is updated to include first and last names.
         conn.execute(
             "INSERT INTO users(first_name, last_name, email, password_hash, created_at) VALUES(?,?,?,?,?)",
-            (first_name.strip(), last_name.strip(), email.strip().lower(), pw_hash, datetime.utcnow().isoformat()),
+           (first_name.strip(), last_name.strip(), email.strip().lower(), pw_hash, datetime.utcnow().isoformat()),
+            #( email.strip().lower(), pw_hash, datetime.utcnow().isoformat()),
+
         )
         conn.commit()
         conn.close()
@@ -96,6 +99,7 @@ with st.form("register_form"):
         else:
             # The add_user function call is updated to pass first and last names.
             ok, msg = add_user(r_first_name, r_last_name, r_email, r_pwd)
+            #ok, msg = add_user( r_email, r_pwd)
             if ok:
                 st.success(msg + " You can now log in.")
                 st.switch_page("pages/Auth.py")
