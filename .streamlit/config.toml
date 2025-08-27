@@ -1,6 +1,6 @@
 [theme]
 # The dark "Stone" color for buttons and interactive elements
-primaryColor = "#a6d522"
+primaryColor = "#96c31bff"
 
 # The soft "Off White" color for the main background
 backgroundColor = "#efeeea"
@@ -9,7 +9,7 @@ backgroundColor = "#efeeea"
 secondaryBackgroundColor = "#d8e7d1"
 
 # The dark "Stone" color for text readability
-textColor = "#3d3e39"
+textColor = "#1a1a17ff"
 
 # Using a clean sans-serif font
 font = "sans serif"
