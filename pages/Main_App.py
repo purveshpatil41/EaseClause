@@ -7,7 +7,11 @@ import streamlit as st
 import sqlite3
 import bcrypt # Needed for a shared module
 from datetime import datetime
+import os
 
+# ---------------------------
+# Utility: Inject CSS from file
+# ---------------------------
 
 
 # Optional parsers
@@ -24,7 +28,8 @@ except Exception:
 # ---------------------------
 # Database helpers (copied from Milestone1.py)
 # ---------------------------
-DB_PATH = "milestone1.db"
+# Change the database path to "users.db"
+DB_PATH = "users.db"
 
 def get_conn():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -84,7 +89,7 @@ def delete_document(doc_id: int, user_id: int):
 def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
     """
     Returns (text, filename, mime)
-    Supports .txt, .docx, and .pdf (if libs installed).
+    Supports .txt .docx and .pdf (if libs installed).
     """
     filename = uploaded_file.name
     mime = uploaded_file.type or ""
@@ -121,64 +126,18 @@ def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
         raise RuntimeError("Unsupported file type. Please upload TXT, DOCX, or PDF.")
 
 # ---------------------------
-# UI Styling
-# ---------------------------
-def inject_css():
-    st.markdown(
-        """
-        <style>
-        .badge {
-            background: linear-gradient(135deg, #6366F1, #8B5CF6);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 9999px;
-            font-weight: 600;
-            font-size: 12px;
-            display: inline-block;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        .metric-card {
-            background: #0F172A;
-            color: #E2E8F0;
-            border-radius: 16px;
-            padding: 18px;
-            box-shadow: 0 8px 24px rgba(2,6,23,0.4);
-        }
-        .metric-value {
-            font-size: 24px;
-            font-weight: 700;
-        }
-        .metric-label {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-# ---------------------------
 # App Logic
 # ---------------------------
-inject_css()
+
 init_db()
 
 # Check for a logged-in user and redirect if not found
-# To work on the layout, you can comment out the lines below
 if "user" not in st.session_state or st.session_state.user is None:
     st.warning("Please login to access this page.")
     st.stop()
 
-# This is the line that now correctly checks if a user is in the session state
 if "user" in st.session_state and st.session_state.user:
-    st.title(f"Welcome, {st.session_state.user['email']}")
+    st.title(f"Welcome!")
 else:
     st.title("Welcome to the Main Application")
 
