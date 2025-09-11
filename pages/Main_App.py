@@ -111,8 +111,8 @@ def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
             raise RuntimeError("PyPDF2 not installed. Run: pip install PyPDF2")
         reader = PdfReader(uploaded_file)
         pages = []
-        for p in reader.pages:
-            try:
+        for p in reader.pages:              
+            try:                      
                 pages.append(p.extract_text() or "")
             except Exception:
                 pages.append("")
