@@ -137,7 +137,8 @@ if "user" not in st.session_state or st.session_state.user is None:
     st.stop()
 
 if "user" in st.session_state and st.session_state.user:
-    st.title(f"Welcome!")
+    # st.title(f"Welcome!")
+    st.title(f"Welcome {st.session_state.user['first_name']}!")
 else:
     st.title("Welcome to the Main Application")
 
@@ -204,3 +205,4 @@ with tab_docs:
                     delete_document(row["id"], st.session_state.user["id"])
                     st.success(f"Deleted document #{row['id']}")
                     st.experimental_rerun()
+                    
