@@ -5,14 +5,7 @@
 
 import streamlit as st
 import sqlite3
-import bcrypt # Needed for a shared module
 from datetime import datetime
-import os
-
-# ---------------------------
-# Utility: Inject CSS from file
-# ---------------------------
-
 
 # Optional parsers
 try:
@@ -26,9 +19,8 @@ except Exception:
     PdfReader = None
 
 # ---------------------------
-# Database helpers (copied from Milestone1.py)
+# Database helpers
 # ---------------------------
-# Change the database path to "users.db"
 DB_PATH = "users.db"
 
 def get_conn():
@@ -39,8 +31,7 @@ def get_conn():
 def init_db():
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute(
-        """
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS documents(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -50,14 +41,12 @@ def init_db():
             created_at TEXT NOT NULL,
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
-        """
-    )
+    """)
     conn.commit()
     conn.close()
 
 def save_document(user_id: int, content: str, filename: str | None, mime: str | None):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
+    conn = get_conn()
     conn.execute(
         "INSERT INTO documents(user_id, filename, mime, content, created_at) VALUES(?,?,?,?,?)",
         (user_id, filename, mime, content, datetime.utcnow().isoformat()),
@@ -66,8 +55,7 @@ def save_document(user_id: int, content: str, filename: str | None, mime: str | 
     conn.close()
 
 def list_documents(user_id: int):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
+    conn = get_conn()
     rows = conn.execute(
         "SELECT id, filename, mime, content, created_at FROM documents WHERE user_id=? ORDER BY id DESC",
         (user_id,),
@@ -76,21 +64,15 @@ def list_documents(user_id: int):
     return rows
 
 def delete_document(doc_id: int, user_id: int):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
+    conn = get_conn()
     conn.execute("DELETE FROM documents WHERE id=? AND user_id=?", (doc_id, user_id))
     conn.commit()
     conn.close()
 
-
 # ---------------------------
-# Utility: extract text
+# Utility: Extract text
 # ---------------------------
 def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
-    """
-    Returns (text, filename, mime)
-    Supports .txt .docx and .pdf (if libs installed).
-    """
     filename = uploaded_file.name
     mime = uploaded_file.type or ""
     name_lower = filename.lower()
@@ -126,35 +108,60 @@ def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
         raise RuntimeError("Unsupported file type. Please upload TXT, DOCX, or PDF.")
 
 # ---------------------------
-# App Logic
+# Logout helper
 # ---------------------------
+def logout():
+    """Clear session and stop execution."""
+    st.session_state.clear()
+    st.session_state["logged_out"] = True
+    st.stop()
 
+# ---------------------------
+# Initialize DB
+# ---------------------------
 init_db()
 
-# Check for a logged-in user and redirect if not found
-if "user" not in st.session_state or st.session_state.user is None:
+# ---------------------------
+# Handle logged out state
+# ---------------------------
+if st.session_state.get("logged_out"):
+    st.session_state["logged_out"] = False
+    st.warning("You have been logged out. Please login again.")
+    st.stop()
+
+# ---------------------------
+# Check login
+# ---------------------------
+if "user" not in st.session_state or st.session_state["user"] is None:
     st.warning("Please login to access this page.")
     st.stop()
 
-if "user" in st.session_state and st.session_state.user:
-    st.title(f"Welcome!")
-else:
-    st.title("Welcome to the Main Application")
+# ---------------------------
+# UI
+# ---------------------------
+st.title(f"Welcome, {st.session_state.user.get('username', 'User')}!")
 
-st.button("Log out", on_click=lambda: st.switch_page("main.py"))
+# Sidebar logout button
+st.sidebar.button("Log out", on_click=logout)
 
-st.markdown("## Main Application")
+# Tabs
 tab_upload, tab_docs = st.tabs(["Upload Document", "Document Library"])
 
+# --- Upload Tab ---
 with tab_upload:
     st.markdown("### Upload Document")
-    st.write("You can paste text or upload a TXT/DOCX/PDF file.")
-    paste_text = st.text_area("Paste text here (optional)", height=180, placeholder="Paste the content of your legal/policy document...")
+    st.write("Paste text or upload a TXT/DOCX/PDF file.")
+
+    paste_text = st.text_area(
+        "Paste text here (optional)", height=180,
+        placeholder="Paste the content of your legal/policy document..."
+    )
     uploaded_file = st.file_uploader("Or upload a file", type=["txt", "docx", "pdf"])
 
     extracted_text = ""
     filename = None
     mime = None
+
     if uploaded_file is not None:
         try:
             extracted_text, filename, mime = read_text_from_upload(uploaded_file)
@@ -164,10 +171,8 @@ with tab_upload:
         except Exception as e:
             st.error(str(e))
 
-    if st.button("Save Document", type="primary"):
-        final_text = (paste_text or "").strip()
-        if not final_text and extracted_text:
-            final_text = extracted_text.strip()
+    if st.button("Save Document"):
+        final_text = (paste_text or "").strip() or extracted_text.strip()
         if not final_text:
             st.error("No content to save. Paste text or upload a file first.")
         else:
@@ -175,20 +180,22 @@ with tab_upload:
                 st.session_state.user["id"],
                 final_text,
                 filename or "pasted_text.txt",
-                mime or "text/plain",
+                mime or "text/plain"
             )
             st.success("Document saved to your library.")
 
+# --- Library Tab ---
 with tab_docs:
     st.markdown("### Document Library")
     docs = list_documents(st.session_state.user["id"])
+
     if not docs:
         st.info("No documents uploaded yet.")
     else:
         for row in docs:
             with st.container():
                 st.markdown(
-                    f"<div class='card'><b>#{row['id']}</b> — {row['filename'] or 'Untitled'} "
+                    f"<div class='card'><b>#{row['id']}</b> — {row['filename'] or 'Untitled'}"
                     f"<br><span style='font-size:12px;opacity:0.7'>{row['created_at']}</span>"
                     f"<br><br>{(row['content'][:280] + ('...' if len(row['content'])>280 else ''))}</div>",
                     unsafe_allow_html=True,
@@ -203,4 +210,4 @@ with tab_docs:
                 if cols[1].button("Delete", key=f"del_{row['id']}"):
                     delete_document(row["id"], st.session_state.user["id"])
                     st.success(f"Deleted document #{row['id']}")
-                    st.experimental_rerun()
+                    st.experimental_rerun()  # works for deletion
