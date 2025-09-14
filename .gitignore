@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv/
+
+
+# Ignore database files
+users.db
+*.db
+
