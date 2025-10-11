@@ -5,16 +5,13 @@
 
 import streamlit as st
 import sqlite3
-import bcrypt # Needed for a shared module
 from datetime import datetime
+from backend import DB_PATH, init_db
 import os
 
 # ---------------------------
-# Utility: Inject CSS from file
-# ---------------------------
-
-
 # Optional parsers
+# ---------------------------
 try:
     from docx import Document as DocxDocument
 except Exception:
@@ -26,71 +23,41 @@ except Exception:
     PdfReader = None
 
 # ---------------------------
-# Database helpers (copied from Milestone1.py)
+# Database helpers
 # ---------------------------
-# Change the database path to "users.db"
-DB_PATH = "users.db"
-
 def get_conn():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
+def save_document(user_email: str, content: str, filename: str | None, mime: str | None):
     conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS documents(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            filename TEXT,
-            mime TEXT,
-            content TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        """
-    )
-    conn.commit()
-    conn.close()
-
-def save_document(user_id: int, content: str, filename: str | None, mime: str | None):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
     conn.execute(
-        "INSERT INTO documents(user_id, filename, mime, content, created_at) VALUES(?,?,?,?,?)",
-        (user_id, filename, mime, content, datetime.utcnow().isoformat()),
+        "INSERT INTO documents(user_email, filename, mime, content, created_at) VALUES(?,?,?,?,?)",
+        (user_email, filename, mime, content, datetime.utcnow().isoformat()),
     )
     conn.commit()
     conn.close()
 
-def list_documents(user_id: int):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
+def list_documents(user_email: str):
+    conn = get_conn()
     rows = conn.execute(
-        "SELECT id, filename, mime, content, created_at FROM documents WHERE user_id=? ORDER BY id DESC",
-        (user_id,),
+        "SELECT id, filename, mime, content, created_at FROM documents WHERE user_email=? ORDER BY id DESC",
+        (user_email,),
     ).fetchall()
     conn.close()
     return rows
 
-def delete_document(doc_id: int, user_id: int):
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("DELETE FROM documents WHERE id=? AND user_id=?", (doc_id, user_id))
+def delete_document(doc_id: int, user_email: str):
+    conn = get_conn()
+    conn.execute("DELETE FROM documents WHERE id=? AND user_email=?", (doc_id, user_email))
     conn.commit()
     conn.close()
-
 
 # ---------------------------
 # Utility: extract text
 # ---------------------------
 def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
-    """
-    Returns (text, filename, mime)
-    Supports .txt .docx and .pdf (if libs installed).
-    """
     filename = uploaded_file.name
     mime = uploaded_file.type or ""
     name_lower = filename.lower()
@@ -126,30 +93,41 @@ def read_text_from_upload(uploaded_file) -> tuple[str, str, str]:
         raise RuntimeError("Unsupported file type. Please upload TXT, DOCX, or PDF.")
 
 # ---------------------------
-# App Logic
+# Initialize DB
 # ---------------------------
-
 init_db()
 
-# Check for a logged-in user and redirect if not found
+# ---------------------------
+# Require login
+# ---------------------------
 if "user" not in st.session_state or st.session_state.user is None:
     st.warning("Please login to access this page.")
     st.stop()
 
-if "user" in st.session_state and st.session_state.user:
-    st.title(f"Welcome!")
-else:
-    st.title("Welcome to the Main Application")
+# Welcome message
+user_email = st.session_state.user["email"]
+st.title(f"Welcome, {user_email}!")
 
-st.button("Log out", on_click=lambda: st.switch_page("main.py"))
+# Logout
+if st.button("Log out"):
+    st.session_state.clear()
+    st.experimental_rerun()
 
 st.markdown("## Main Application")
 tab_upload, tab_docs = st.tabs(["Upload Document", "Document Library"])
 
+# ---------------------------
+# Upload Tab
+# ---------------------------
 with tab_upload:
     st.markdown("### Upload Document")
     st.write("You can paste text or upload a TXT/DOCX/PDF file.")
-    paste_text = st.text_area("Paste text here (optional)", height=180, placeholder="Paste the content of your legal/policy document...")
+
+    paste_text = st.text_area(
+        "Paste text here (optional)",
+        height=180,
+        placeholder="Paste the content of your legal/policy document...",
+    )
     uploaded_file = st.file_uploader("Or upload a file", type=["txt", "docx", "pdf"])
 
     extracted_text = ""
@@ -164,7 +142,7 @@ with tab_upload:
         except Exception as e:
             st.error(str(e))
 
-    if st.button("Save Document", type="primary"):
+    if st.button("Save Document"):
         final_text = (paste_text or "").strip()
         if not final_text and extracted_text:
             final_text = extracted_text.strip()
@@ -172,16 +150,19 @@ with tab_upload:
             st.error("No content to save. Paste text or upload a file first.")
         else:
             save_document(
-                st.session_state.user["id"],
+                user_email,
                 final_text,
                 filename or "pasted_text.txt",
                 mime or "text/plain",
             )
             st.success("Document saved to your library.")
 
+# ---------------------------
+# Library Tab
+# ---------------------------
 with tab_docs:
     st.markdown("### Document Library")
-    docs = list_documents(st.session_state.user["id"])
+    docs = list_documents(user_email)
     if not docs:
         st.info("No documents uploaded yet.")
     else:
@@ -201,6 +182,7 @@ with tab_docs:
                         height=240,
                     )
                 if cols[1].button("Delete", key=f"del_{row['id']}"):
-                    delete_document(row["id"], st.session_state.user["id"])
+                    delete_document(row["id"], user_email)
                     st.success(f"Deleted document #{row['id']}")
                     st.experimental_rerun()
+
