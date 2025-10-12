@@ -42,7 +42,7 @@ if st.session_state.auth_view == 'login':
                 # Get user data from the backend using the email
                 data = backend.get_user(email)
                 if data and bcrypt.checkpw(password.encode(), data[4]):
-                    st.session_state.user = {"id": data[0], "email": data[3], "first_name": data[1]}
+                    st.session_state.user = {"id": data[0], "first_name": data[1], "email": data[3]}
                     st.success("Login successful. You can now access the app.")
                     st.switch_page("pages/Main_App.py")
                 else:
